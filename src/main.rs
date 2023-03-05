@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 /// Random Access Machine Opcodes
 #[derive(Debug, Clone)]
 enum OpCode {
@@ -91,7 +93,9 @@ impl std::fmt::Display for Instruction {
 /// Data that is held by a register
 pub type RegisterData = i32;
 
-/// Random Access Machine - TODO: add more info
+/// Random Access Machine 
+///
+/// Responsible for executing RAM instructions, holds current state of machine and the data 
 #[derive(Default, Debug)]
 struct RAM {
     /// State of the machine, set to `true` when the `HALT` is reached or the machine runs
@@ -107,118 +111,149 @@ struct RAM {
     loaded_reg: usize,
 }
 
-// TODO: Add a way to verify wheter an instruction is correct or not. 
+/// Responsible for parsing RAM source into instructions.
+///
+/// Stores required information to create *correct* RAM instruction code
+#[derive(Default)]
+struct Parser {
+    /// Points at the current instruction 
+    cursor: usize,
+    /// Stores jump labels and corresponding instructions that the point to 
+    missing_labels: Vec::<(String, usize)>,
+    // (TODO: improve this description)
+    /// Stores jump instruction positions that are missing the jump index (??????)
+    label_map: HashMap::<String, usize>,
+}
+
+// TODO: More verbose error on parsing, and don't use the crappy panic
+// TODO: Add a way to verify whether an instruction is correct or not. 
+impl Parser {
+    /// Parses an instruction and returns it if the parsing succeeded. On failure to function 
+    /// returns None.
+    fn parse_instruction(&mut self, line: &str) -> Option<Instruction> {
+        let mut data = line.split_whitespace();
+
+        let mut opcode_string = if let Some(opcode_str) = data.next() {
+            opcode_str.to_string()
+        } else {
+            return None;
+        };
+
+        // The ; sign at the start of the string is considered to be a comment in my
+        // implementation
+        if opcode_string.starts_with(';') {
+            return None;
+        }
+
+        // Strings that end with the : are considered to be jump labels
+        while opcode_string.ends_with(':') {
+            opcode_string.pop();
+            if opcode_string.is_empty() {
+                panic!("Lable cannot be an empty string");
+            }
+
+            if self.label_map.contains_key(&opcode_string) {
+                panic!("Having two labels with the same name is not allowed");
+            }
+            self.label_map.insert(opcode_string, self.cursor);
+
+
+            opcode_string = if let Some(opcode_str) = data.next() {
+                opcode_str.to_string()
+            } else {
+                return None;
+            };
+        }
+
+        // TODO: This could be case insensitive
+        let op_code = match opcode_string.as_str() {
+            "LOAD"  => OpCode::LOAD,
+            "STORE" => OpCode::STORE,
+            "ADD"   => OpCode::ADD,
+            "SUB"   => OpCode::SUB,
+            "MULT"  => OpCode::MULT,
+            "DIV"   => OpCode::DIV,
+            "READ"  => OpCode::READ,
+            "WRITE" => OpCode::WRITE,
+            "JUMP"  => OpCode::JUMP,
+            "JGTZ"  => OpCode::JGTZ,
+            "JZERO" => OpCode::JZERO,
+            "HALT"  => OpCode::HALT,
+            _       => panic!("Given instruction does not exist.")
+        };
+
+        let string = data.next();
+        let value = if string.is_some() && !string.unwrap().starts_with(';') {
+            string.unwrap()
+        } else {
+            // OpCode has no second argument or the argument is a comment
+            let inst = Instruction {
+                op_code,
+                op_type: OpType::NoValue,
+                op_value: 0,
+            };
+
+            self.cursor += 1;
+            return Some(inst);
+        };
+
+        let mut op_type;
+        let mut value_chars = value.chars();
+        if value.starts_with('*') {
+            value_chars.next();
+            op_type = OpType::ReadReg;
+        } else if value.starts_with('=') {
+            value_chars.next();
+            op_type = OpType::Value;
+        } else {
+            op_type = OpType::Register;
+        }
+
+        // dbg!(value_chars.as_str());
+        let op_value = if let Ok(value) = value_chars.as_str().parse::<i32>() {
+            value
+        } else {
+            op_type = OpType::Value;
+            self.missing_labels.push((value.to_string(), self.cursor));
+            -1
+        };
+
+        let inst = Instruction {
+            op_code, op_type, op_value,
+        };
+
+        self.cursor += 1;
+        Some(inst)
+    }
+
+    fn parse_source(&mut self, source: String) -> Vec<Instruction> {
+        let mut instruction_stack = Vec::new();
+
+        for line in source.lines() {
+            let instruction = self.parse_instruction(line);
+            if let Some(inst) = instruction {
+                instruction_stack.push(inst);
+            }
+        }
+
+        // Filling the missing jump values
+        for label in &self.missing_labels {
+            let value = self.label_map[&label.0];
+            instruction_stack[label.1].op_value = value as i32;
+        }
+
+        return instruction_stack;
+    }
+}
+
 impl RAM {
-    /// Creates a new machine
+    /// Creates a new virtual machine
     fn new() -> Self {
         Self::default()
     }
 
-    fn load_instructions(&mut self, source: String) {
-        // TODO: Parses/Lexer data
-        let mut missing_labels = Vec::<(String, usize)>::new();
-        let mut label_map = std::collections::HashMap::<String, usize>::new();
-        let mut cursor = 0;
-
-        // TODO: Parser
-        //       The Parser struct should implement a `read_instruction` function that reads an
-        //       instruction line from specified input stream (file, stdin, string, etc) and then
-        //       returns it
-        for line in source.lines() {
-            let data: Vec<&str> = line.split_whitespace().collect();
-            // println!("{data:?}");
-
-            if data.is_empty() {
-                continue;
-            }
-
-            let mut opcode_string = data[0].to_string();
-
-            // TODO: Inline comments - comments in the same line as instructions
-            //
-            // The ; sign at the start of the string is considered to be a comment in my
-            // implementation
-            if opcode_string.starts_with(';') {
-                continue;
-            }
-
-            // TODO: Inline jumps 
-            //       Jump labels could be inlined and placed in the same line as the RAM 
-            //       instruction, something like this:
-            //       `my_label: READ 1`
-            // Strings that end with the : are considered to be jump labels
-            if opcode_string.ends_with(':') {
-                opcode_string.pop();
-                if label_map.contains_key(&opcode_string) {
-                    panic!("Having two labels with the same name is not allowed");
-                }
-                label_map.insert(opcode_string, cursor);
-                continue;
-            }
-
-            // TODO: This could be case insensitive
-            let op_code = match opcode_string.as_str() {
-                "LOAD"  => OpCode::LOAD,
-                "STORE" => OpCode::STORE,
-                "ADD"   => OpCode::ADD,
-                "SUB"   => OpCode::SUB,
-                "MULT"  => OpCode::MULT,
-                "DIV"   => OpCode::DIV,
-                "READ"  => OpCode::READ,
-                "WRITE" => OpCode::WRITE,
-                "JUMP"  => OpCode::JUMP,
-                "JGTZ"  => OpCode::JGTZ,
-                "JZERO" => OpCode::JZERO,
-                "HALT"  => OpCode::HALT,
-                _       => panic!("Given instruction does not exist.")
-            };
-
-            // OpCode has no second argument
-            let Some(value) = data.get(1) else {
-                let inst = Instruction {
-                    op_code,
-                    op_type: OpType::NoValue,
-                    op_value: 0,
-                };
-                self.instruction_stack.push(inst);
-
-                cursor += 1;
-                continue;
-            };
-
-            let mut op_type;
-            let mut value_chars = value.chars();
-            if value.starts_with('*') {
-                value_chars.next();
-                op_type = OpType::ReadReg;
-            } else if value.starts_with('=') {
-                value_chars.next();
-                op_type = OpType::Value;
-            } else {
-                op_type = OpType::Register;
-            }
-
-            // dbg!(value_chars.as_str());
-            let op_value = if let Ok(value) = value_chars.as_str().parse::<i32>() {
-                value
-            } else {
-                op_type = OpType::Value;
-                missing_labels.push((value.to_string(), cursor));
-                -1
-            };
-
-            let inst = Instruction {
-                op_code, op_type, op_value,
-            };
-            self.instruction_stack.push(inst);
-
-            cursor += 1;
-        }
-
-        for label in missing_labels {
-            let value = label_map[&label.0];
-            self.instruction_stack[label.1].op_value = value as i32;
-        }
+    fn load_instructions(&mut self, instructions: Vec<Instruction>) {
+        self.instruction_stack = instructions;
     }
 
     fn get_register_data(&mut self, idx: usize) -> RegisterData {
@@ -242,14 +277,19 @@ impl RAM {
 
     fn get_instruction_data(&mut self, inst: &Instruction) -> i32 {
         match inst.op_type {
-            OpType::Value => inst.op_value,
             OpType::Register => self.get_register_data(inst.op_value as usize),
+            OpType::Value => inst.op_value,
             OpType::ReadReg => self.get_readregister_data(inst.op_value as usize),
+            // TODO: This should be just unreachable
             OpType::NoValue => panic!("Instruction requires an argument"),
         }
     }
 
-    // TODO: Put some code as an implmentation function for the Instruction structure
+    // TODO: Put some code as an implementation function for the Instruction structure
+    //
+    // TODO: All panics in this structure should be ignored. Validity check should be done on the
+    // parsing step
+    //
     /// Executes instruction under the instruction pointer and the returns it.
     fn execute_next_instruction(&mut self) -> Option<Instruction> {
         let inst_idx = self.instruction_pointer;
@@ -337,9 +377,15 @@ impl RAM {
 fn main() {
     // let code = std::fs::read_to_string("ram/add_numbers.ram").unwrap();
     // let code = std::fs::read_to_string("ram/example-fucked.ram").unwrap();
-    let code = std::fs::read_to_string("ram/sequence_sum.ram").unwrap();
+    let code = std::fs::read_to_string("ram/example.ram").unwrap();
+    // let code = std::fs::read_to_string("ram/sequence_sum.ram").unwrap();
+
+
+    let mut parser = Parser::default();
+    let instructions = parser.parse_source(code);
+
     let mut ram = RAM::new();
-    ram.load_instructions(code);
+    ram.load_instructions(instructions);
 
     println!("--------");
     for inst in &ram.instruction_stack {

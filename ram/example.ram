@@ -4,13 +4,12 @@
 main:
     READ 1
     JUMP other
-; this is a comment
+    ; this is a comment
     LOAD 2
     STORE =3
-other:
-looping:
-    LOAD 1
-    JUMP something
+looping: 
+other: LOAD 1
+    JUMP something ; this is an inline comment
     ADD 2
 something: 
     WRITE 2
