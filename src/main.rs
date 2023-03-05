@@ -134,6 +134,8 @@ impl RAM {
 
             let mut opcode_string = data[0].to_string();
 
+            // TODO: Inline comments - comments in the same line as instructions
+            //
             // The ; sign at the start of the string is considered to be a comment in my
             // implementation
             if opcode_string.starts_with(';') {
@@ -208,22 +210,15 @@ impl RAM {
             let inst = Instruction {
                 op_code, op_type, op_value,
             };
-            // dbg!();
-            // dbg!(cursor);
-            // dbg!(&inst);
             self.instruction_stack.push(inst);
 
             cursor += 1;
         }
 
-        // dbg!(&self.instruction_stack);
-        // dbg!(&missing_labels);
-        // dbg!(&label_map);
         for label in missing_labels {
             let value = label_map[&label.0];
             self.instruction_stack[label.1].op_value = value as i32;
         }
-        // dbg!(&self.instruction_stack);
     }
 
     fn get_register_data(&mut self, idx: usize) -> RegisterData {
@@ -243,6 +238,15 @@ impl RAM {
             self.registers.resize(idx + 1, 0);
         }
         self.registers[idx] = data;
+    }
+
+    fn get_instruction_data(&mut self, inst: &Instruction) -> i32 {
+        match inst.op_type {
+            OpType::Value => inst.op_value,
+            OpType::Register => self.get_register_data(inst.op_value as usize),
+            OpType::ReadReg => self.get_readregister_data(inst.op_value as usize),
+            OpType::NoValue => panic!("Instruction requires an argument"),
+        }
     }
 
     // TODO: Put some code as an implmentation function for the Instruction structure
@@ -266,52 +270,26 @@ impl RAM {
                 }
             }
             OpCode::STORE => {
-                let data = match inst.op_type {
-                    OpType::Value => inst.op_value,
-                    OpType::Register => self.get_register_data(inst.op_value as usize),
-                    OpType::ReadReg => self.get_readregister_data(inst.op_value as usize),
-                    OpType::NoValue => panic!("Instruction STORE requires an argument"),
-                };
-
+                let data = self.get_instruction_data(&inst);
                 self.set_register_data(self.loaded_reg, data);
             }
             OpCode::ADD => {
-                let data = match inst.op_type {
-                    OpType::Value => inst.op_value,
-                    OpType::Register => self.get_register_data(inst.op_value as usize),
-                    OpType::ReadReg => self.get_readregister_data(inst.op_value as usize),
-                    OpType::NoValue => panic!("Instruction STORE requires an argument"),
-                };
+                let data = self.get_instruction_data(&inst);
                 let loaded_data = self.get_register_data(self.loaded_reg);
                 self.set_register_data(self.loaded_reg, loaded_data + data);
             }
             OpCode::SUB => {
-                let data = match inst.op_type {
-                    OpType::Value => inst.op_value,
-                    OpType::Register => self.get_register_data(inst.op_value as usize),
-                    OpType::ReadReg => self.get_readregister_data(inst.op_value as usize),
-                    OpType::NoValue => panic!("Instruction STORE requires an argument"),
-                };
+                let data = self.get_instruction_data(&inst);
                 let loaded_data = self.get_register_data(self.loaded_reg);
                 self.set_register_data(self.loaded_reg, loaded_data - data);
             }
             OpCode::MULT => {
-                let data = match inst.op_type {
-                    OpType::Value => inst.op_value,
-                    OpType::Register => self.get_register_data(inst.op_value as usize),
-                    OpType::ReadReg => self.get_readregister_data(inst.op_value as usize),
-                    OpType::NoValue => panic!("Instruction STORE requires an argument"),
-                };
+                let data = self.get_instruction_data(&inst);
                 let loaded_data = self.get_register_data(self.loaded_reg);
                 self.set_register_data(self.loaded_reg, loaded_data * data);
             }
             OpCode::DIV => {
-                let data = match inst.op_type {
-                    OpType::Value => inst.op_value,
-                    OpType::Register => self.get_register_data(inst.op_value as usize),
-                    OpType::ReadReg => self.get_readregister_data(inst.op_value as usize),
-                    OpType::NoValue => panic!("Instruction STORE requires an argument"),
-                };
+                let data = self.get_instruction_data(&inst);
                 let loaded_data = self.get_register_data(self.loaded_reg);
                 self.set_register_data(self.loaded_reg, loaded_data / data);
             }
@@ -329,45 +307,24 @@ impl RAM {
                 self.set_register_data(register, data);
             }
             OpCode::WRITE => {
-                let data = match inst.op_type {
-                    OpType::Value => inst.op_value,
-                    OpType::Register => self.get_register_data(inst.op_value as usize),
-                    OpType::ReadReg => self.get_readregister_data(inst.op_value as usize),
-                    OpType::NoValue => panic!("Instruction STORE requires an argument"),
-                };
+                let data = self.get_instruction_data(&inst);
                 println!("{data}");
             }
             OpCode::JUMP => {
-                let index = match inst.op_type {
-                    OpType::Value => inst.op_value,
-                    OpType::Register => self.get_register_data(inst.op_value as usize),
-                    OpType::ReadReg => self.get_readregister_data(inst.op_value as usize),
-                    OpType::NoValue => panic!("Instruction STORE requires an argument"),
-                };
+                let index = self.get_instruction_data(&inst);
                 self.instruction_pointer = index as usize;
             }
             OpCode::JGTZ => {
                 let loaded_data = self.get_register_data(self.loaded_reg);
                 if loaded_data > 0 {
-                    let index = match inst.op_type {
-                        OpType::Value => inst.op_value,
-                        OpType::Register => self.get_register_data(inst.op_value as usize),
-                        OpType::ReadReg => self.get_readregister_data(inst.op_value as usize),
-                        OpType::NoValue => panic!("Instruction STORE requires an argument"),
-                    };
+                    let index = self.get_instruction_data(&inst);
                     self.instruction_pointer = index as usize;
                 }
             }
             OpCode::JZERO => {
                 let loaded_data = self.get_register_data(self.loaded_reg);
                 if loaded_data == 0 {
-                    let index = match inst.op_type {
-                        OpType::Value => inst.op_value,
-                        OpType::Register => self.get_register_data(inst.op_value as usize),
-                        OpType::ReadReg => self.get_readregister_data(inst.op_value as usize),
-                        OpType::NoValue => panic!("Instruction STORE requires an argument"),
-                    };
-
+                    let index = self.get_instruction_data(&inst);
                     self.instruction_pointer = index as usize;
                 }
             }
@@ -378,9 +335,9 @@ impl RAM {
 }
 
 fn main() {
-    let code = std::fs::read_to_string("ram/add_numbers.ram").unwrap();
-    // let code = std::fs::read_to_string("example-fucked.ram").unwrap();
-    // let code = std::fs::read_to_string("sequence_sum.ram").unwrap();
+    // let code = std::fs::read_to_string("ram/add_numbers.ram").unwrap();
+    // let code = std::fs::read_to_string("ram/example-fucked.ram").unwrap();
+    let code = std::fs::read_to_string("ram/sequence_sum.ram").unwrap();
     let mut ram = RAM::new();
     ram.load_instructions(code);
 
