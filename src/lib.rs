@@ -4,31 +4,27 @@ pub mod parser;
 /// Random Access Machine Opcodes
 #[derive(Debug, Clone)]
 pub enum OpCode {
-    /// Changes the currently loaded register to specified register
+    /// Loads data from specified register to the adder register
     LOAD = 0,
-    // TODO: The logic should be flipped here I think
-    /// Copy value or register data from specified register to currently loaded register
+    /// Copy data from adder to the specified register 
     STORE = 1,
-    /// Add value from specified register to currently loaded register
+    /// Add value or data from specified register to the adder register
     ADD = 2,
-    /// Subtract value from currently loaded register with value or data in specified register and
-    /// put it into currently loaded register
+    /// Subtract value from the adder register with value or data in specified register
     SUB = 3,
-    /// Multiply value from currently loaded register with value or data in specified register and
-    /// put it into currently loaded register
+    /// Multiply data in the adder register with a value or data from specified register
     MULT = 4,
-    /// Divide value of the currently loaded register with value or data in specified register and
-    /// put it into currently loaded register
+    /// Divide value of the adder register with value or data in specified register
     DIV = 5,
-    /// Read data from input memory (here memory is stdin) and load it to the specified register
+    /// Read data from input memory (here memory is stdin) and load it into specified register
     READ = 6,
     /// Write value or data from specified register to output memory (here memory is stdout)
     WRITE = 7,
     /// Jump to label (or value)
     JUMP = 8,
-    /// Jump to label (or value) if value under loaded register is greater than zero
+    /// Jump to label (or value) if value under the adder register is greater than zero
     JGTZ = 9,
-    /// Jump to label (or value) if value under loaded register is zero
+    /// Jump to label (or value) if value under the adder register is zero
     JZERO = 10,
     /// End the code execution
     HALT = 11,

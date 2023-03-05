@@ -16,13 +16,15 @@ entry:
     HALT
 not_zero:
     ; register two is the sum value
-    LOAD 2
-    STORE =0 
+    LOAD =0
+    STORE 2
 loop:
     LOAD 2
     ADD 1
+    STORE 2
     LOAD 1
     SUB =1
+    STORE 1
     JGTZ loop
     LOAD 2
     WRITE 2

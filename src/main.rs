@@ -4,8 +4,8 @@ fn main() {
     // let code = std::fs::read_to_string("ram/add_numbers.ram").unwrap();
     // let code = std::fs::read_to_string("ram/example-fucked.ram").unwrap();
     // let code = std::fs::read_to_string("ram/example.ram").unwrap();
-    // let code = std::fs::read_to_string("ram/sequence_sum.ram").unwrap();
-    let code = std::fs::read_to_string("ram/slide.ram").unwrap();
+    let code = std::fs::read_to_string("ram/sequence_sum.ram").unwrap();
+    // let code = std::fs::read_to_string("ram/slide.ram").unwrap();
 
 
     let mut parser = Parser::default();

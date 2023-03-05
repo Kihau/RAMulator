@@ -3,6 +3,9 @@ use crate::{Instruction, OpType, OpCode};
 /// Data that is held by a register
 pub type RegisterData = i32;
 
+/// Register used as an input and output to store and load data from executed instructions
+pub const ADDER: usize = 0;
+
 /// Random Access Machine 
 ///
 /// Responsible for executing RAM instructions, holds current state of the machine and its data 
@@ -15,10 +18,9 @@ pub struct RAM {
     instruction_stack: Vec<Instruction>,
     /// Points to the current instruction from the instruction stack
     instruction_pointer: usize,
-    /// Registers that store data of the machine
+    /// Registers that store data of the machine, register 0 is considered to be an adder that is
+    /// used to store results of executed instructions
     registers: Vec<RegisterData>,
-    /// Currently loaded register. This register changes when the `LOAD` instruction gets executed
-    loaded_reg: usize,
 }
 
 impl RAM {
@@ -48,6 +50,11 @@ impl RAM {
             self.registers.resize(idx + 1, 0);
         }
         self.registers[idx] = data;
+    }
+
+    fn set_readregister_data(&mut self, idx: usize, data: RegisterData) {
+        let reg_idx = self.get_register_data(idx);
+        self.set_register_data(reg_idx as usize, data);
     }
 
     fn get_instruction_data(&mut self, inst: &Instruction) -> i32 {
@@ -85,37 +92,36 @@ impl RAM {
 
         match inst.op_code {
             OpCode::LOAD => {
-                self.loaded_reg = match inst.op_type {
-                    OpType::Register => inst.op_value as usize,
-                    OpType::ReadReg => self.get_register_data(inst.op_value as usize) as usize,
-                    OpType::Value | OpType::NoValue => panic!("Instruction LOAD requires a register"),
-                }
+                let data = self.get_instruction_data(&inst);
+                self.set_register_data(ADDER, data);
             }
             OpCode::STORE => {
-                let data = self.get_instruction_data(&inst);
-                self.set_register_data(self.loaded_reg, data);
-                // let data = self.get_register_data(self.loaded_reg);
-                // self.set_register_data(inst.op_value as usize, data);
+                let data = self.get_register_data(ADDER);
+                match inst.op_type {
+                    OpType::Register => self.set_register_data(inst.op_value as usize, data),
+                    OpType::ReadReg => self.set_readregister_data(inst.op_value as usize, data),
+                    OpType::NoValue | OpType::Value => panic!("Instruction STORE requires a register"),
+                };
             }
             OpCode::ADD => {
                 let data = self.get_instruction_data(&inst);
-                let loaded_data = self.get_register_data(self.loaded_reg);
-                self.set_register_data(self.loaded_reg, loaded_data + data);
+                let adder_data = self.get_register_data(ADDER);
+                self.set_register_data(ADDER, adder_data + data);
             }
             OpCode::SUB => {
                 let data = self.get_instruction_data(&inst);
-                let loaded_data = self.get_register_data(self.loaded_reg);
-                self.set_register_data(self.loaded_reg, loaded_data - data);
+                let adder_data = self.get_register_data(ADDER);
+                self.set_register_data(ADDER, adder_data - data);
             }
             OpCode::MULT => {
                 let data = self.get_instruction_data(&inst);
-                let loaded_data = self.get_register_data(self.loaded_reg);
-                self.set_register_data(self.loaded_reg, loaded_data * data);
+                let adder_data = self.get_register_data(ADDER);
+                self.set_register_data(ADDER, adder_data * data);
             }
             OpCode::DIV => {
                 let data = self.get_instruction_data(&inst);
-                let loaded_data = self.get_register_data(self.loaded_reg);
-                self.set_register_data(self.loaded_reg, loaded_data / data);
+                let adder_data = self.get_register_data(ADDER);
+                self.set_register_data(ADDER, adder_data / data);
             }
             OpCode::READ => {
                 // TODO: Error handling
@@ -142,15 +148,15 @@ impl RAM {
                 self.instruction_pointer = index as usize;
             }
             OpCode::JGTZ => {
-                let loaded_data = self.get_register_data(self.loaded_reg);
-                if loaded_data > 0 {
+                let adder_data = self.get_register_data(ADDER);
+                if adder_data > 0 {
                     let index = self.get_instruction_data(&inst);
                     self.instruction_pointer = index as usize;
                 }
             }
             OpCode::JZERO => {
-                let loaded_data = self.get_register_data(self.loaded_reg);
-                if loaded_data == 0 {
+                let adder_data = self.get_register_data(ADDER);
+                if adder_data == 0 {
                     let index = self.get_instruction_data(&inst);
                     self.instruction_pointer = index as usize;
                 }
