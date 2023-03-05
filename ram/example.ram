@@ -1,0 +1,18 @@
+; The following code does not actually do anything
+
+; this label gets ignored, main is not necessary
+main:
+    READ 1
+    JUMP other
+; this is a comment
+    LOAD 2
+    STORE =3
+other:
+looping:
+    LOAD 1
+    JUMP something
+    ADD 2
+something: 
+    WRITE 2
+    JUMP looping
+    HALT

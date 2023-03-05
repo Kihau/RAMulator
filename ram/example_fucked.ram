@@ -1,0 +1,23 @@
+ READ 1
+          JUMP other
+          
+    ;                   a asd as asdasd 
+; this is a comment
+    LOAD       2
+
+
+                   STORE    =3
+other:
+looping:
+    LOAD 1
+    
+     ;           something:
+                 something: 
+  JUMP  something
+
+ADD                         2
+             WRITE     2
+    JUMP                                                         looping
+
+
+    HALT

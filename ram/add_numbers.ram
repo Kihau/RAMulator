@@ -1,0 +1,7 @@
+; Add two number together
+READ 1
+READ 2
+LOAD 1
+ADD 2
+WRITE 1
+HALT

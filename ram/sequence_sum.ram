@@ -1,0 +1,30 @@
+; Example pseudocode:
+; int count = 6
+; int sum = 0
+; for i in 0..count {
+;     sum += i
+; }
+; print(sum)
+
+; This code calculates sum of an arithmetic sequence
+entry:
+    ; register one it the counter (i in the pseudocode example)
+    READ 1
+    LOAD 1
+    JGTZ not_zero
+    WRITE =0
+    HALT
+not_zero:
+    ; register two is the sum value
+    LOAD 2
+    STORE =0 
+loop:
+    LOAD 2
+    ADD 1
+    LOAD 1
+    SUB =1
+    JGTZ loop
+    LOAD 2
+    WRITE 2
+    HALT
+    
