@@ -2,7 +2,7 @@
 
 ; this label gets ignored, main is not necessary
 main:
-    READ 1
+    other: : READ 1 some label: ; somdasd a sd
     JUMP other
     ; this is a comment
     LOAD 2

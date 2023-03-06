@@ -1,5 +1,7 @@
 pub mod ram;
 pub mod parser;
+pub mod new_parser;
+pub mod ui;
 
 /// Random Access Machine Opcodes
 #[derive(Debug, Clone)]

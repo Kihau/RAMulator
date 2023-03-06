@@ -1,15 +1,28 @@
-use RAMulator::{parser::Parser, ram::RAM};
+use RAMulator::{parser::Parser, ram::RAM, new_parser::NewParser, ui::run_app};
 
 fn main() {
+    let _ = run_app();
+
     // let code = std::fs::read_to_string("ram/add_numbers.ram").unwrap();
     // let code = std::fs::read_to_string("ram/example-fucked.ram").unwrap();
     // let code = std::fs::read_to_string("ram/example.ram").unwrap();
-    let code = std::fs::read_to_string("ram/sequence_sum.ram").unwrap();
+    // let code = std::fs::read_to_string("ram/sequence_sum.ram").unwrap();
     // let code = std::fs::read_to_string("ram/slide.ram").unwrap();
-
+    let code = std::fs::read_to_string("ram/testing.ram").unwrap();
 
     let mut parser = Parser::default();
-    let instructions = parser.parse_source(code);
+
+    let mut exp = NewParser::default();
+    exp.parse_source(&code);
+    dbg!(exp.tokens);
+
+    let instructions = match parser.parse_source_new(code) {
+        Ok(inst) => inst,
+        Err(message) => {
+            eprintln!("{message}");
+            return;
+        }
+    };
 
     let mut ram = RAM::new();
     ram.load_instructions(instructions);
